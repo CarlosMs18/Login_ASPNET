@@ -1,8 +1,122 @@
-﻿@{
+﻿
+@*@using Microsoft.AspNetCore.Mvc.Localization;
+@inject IViewLocalizer localizer;
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">@localizer["Bienvenido"] </h1>
+    <p>@localizer["Aprende más"]</p>
 </div>
+
+
+<div>
+    <h3>@ViewBag.Saludo, Carlos</h3>
+</div>
+
+
+<button class="btn btn-primary" onclick="mostrarError()">
+    Mostrar mensaje de error
+</button>
+
+@section Scripts{
+    <script src="~/js/utilidades.js"></script>
+}*@
+@using Microsoft.AspNetCore.Mvc.Localization;
+@inject IViewLocalizer localizer;
+
+@{
+    ViewData["Title"] = "Listado Tareas";
+}
+
+
+<div class="text-center"> 
+    <h1 class="display-4">@localizer["Mis Tareas"]</h1>
+    <button type="button"  class="btn btn-primary mb-3" onclick="agregarNuevaTareaAlListado()">@localizer["Agregar nueva tarea"]</button>
+</div>
+
+<div id="contenedor-listado-tareas" class="text-center">
+    <div id="reordena ble" class="text-start" data-bind="foreach: tareas"> @*meidante databind nos permitetira utilizar lnocaut sobre este elemento html*@
+                                       @*basicamente le estaremos diciendo que utlize las propiedades de tareaslistadoviewmodel
+                                       para llenar la informacion de ahi*@
+
+        <div name="tarea" class="border mb-2 p-2" style="cursor:pointer">
+            <div data-bind="text : titulo, hidden: esNuevo" class="fw-bold"> @*en este databind tomamatos una propiedad de los elementos del arego y lo colcoamos aca*@
+
+            </div>
+
+            <input type="text" name="titulo-tarea" autocomplete="off" 
+              data-bind="value : titulo, visible: esNuevo,
+
+                attr : {'data-id':id},
+                event: {focusout : manejarFocusoutTituloTarea}" /> @*//quiere decir que la relacion entre el viewmodel y este input type=text no es una relacion de una via sino de doble via*@
+                                            @*//es decir que aca se colocara el valor del titulo pero el cambio que le ahagmos a este input se le colocara en la propiedad titulo
+                                            es decir al actualizar el inputtext actualziaremos tmb el objeto de js que se corresponde con la tarea por lo tanto podemos actualizar
+                                            un objeto de js desde aqui de la interfaz de usuario*@
+        </div>
+     </div>
+
+
+     <div data-bind="visible: cargando" class="spinner-border">
+         <span class="visually-hidden">Cargando ...</span>
+     </div>
+
+     <div data-bind="visible: noHayTareas">
+         No existen tareas para mostrar
+     </div>
+
+</div>
+
+@section Scripts{
+    <script src="~/js/tareas.js" asp-append-version="true"></script>
+    <script src="~/js/tareas.js" asp-append-version="true"></script>
+    <script>
+
+        const urlTareas = "/api/tareas";
+
+        function tareaListadoViewModelFn(){
+            var self = this;
+            self.tareas = ko.observableArray([
+                //{titulo : 'Tarea 1'},
+                //{titulo : 'Tarea 2'}
+            
+            ]), //el obsArray significa que os cambios que ocurran en esta propiedad se reflejaran en la in terfaz de usuario osea si tenemso 2 tareas se motraran las 2 y creamos una tabla automaticamente se añadira 1 mas 
+                                            //al ponerle de este tipo js lo hara manualmente ay que reaccionara y mostrara los cambios en el UI
+
+           self.cargando = ko.observable(true)  //no ponemos array pq no es un arreglo es un solo valor 
+
+
+           self.noHayTareas = ko.pureComputed(function(){
+               if(self.cargando()){
+                   return false;
+               }
+
+               return self.tareas().length == 0;
+            })
+        }
+
+        function tareaElementoListadoViewModel({id, titulo}){
+            var self = this;
+            self.id = ko.observable(id); //es onvserbvle porque cambiara. ciand tengamos una tarea nueva el valor sera 0 pero una vez creada se actualizara con el valor de la BBDD
+            self.titulo = ko.observable(titulo);
+            self.esNuevo = ko.pureComputed(function(){
+                return self.id() == 0;
+            }) //para saber si una tarea esta siendfo creada o actualziada, si su id es 0 es nuevo
+
+        }
+
+        const tareaListadoViewModel = new tareaListadoViewModelFn();
+
+        //setTimeout(() => {
+        //    //se ejecutara luego de 2 seg
+        //   // tareaListadoViewModel.tareas.push({titulo : 'Tarea 1'});
+        //    tareaListadoViewModel.cargando(false);
+        //},100)
+
+        obtenerTareas();
+
+        ko.applyBindings(tareaListadoViewModel, document.getElementById('contenedor-listado-tareas'));
+    </script>
+}
