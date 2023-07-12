@@ -1,5 +1,55 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model UsuariosListadoViewModel
 @{
+    ViewData["Title"] = "Listado de usuarios";
+    Layout = "../shared/_layout"; //si no pondemos esto aca utilizara el layout por defecto de usuarios y queremos usar el layout de shared
+}
+
+<h1>Listado de Usuarios</h1>
+
+@if(Model.Mensaje is not null)
+{
+    <div class="alert alert-success" role="alert">
+        @Model.Mensaje
+    </div>
+}
+
+
+@if(Model.Usuarios is not null){
+    <form method="post">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <td>Accion</td>
+                    <td>Email</td>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var usuario in Model.Usuarios)
+                {
+                    <tr>
+                        <td>
+                            <button class="btn btn-primary me-2"
+                                    asp-action="HacerAdmin"
+                                    asp-route-email="@usuario.Email">
+                                Hacer Admin
+                            </button>
+
+
+                        
+                            <button class="btn btn-secondary me-2"
+                                    asp-action="RemoverAdmin"
+                                    asp-route-email="@usuario.Email">
+                                Remover Admin
+                            </button>
+                       
+                        <td>
+                            @usuario.Email
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+       
+        
+    </form>
 }

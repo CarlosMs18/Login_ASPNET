@@ -2,9 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Security.Claims;
 using TareasMVC.Migrations;
 using TareasMVC.Models;
+using TareasMVC.Servicios;
 
 namespace TareasMVC.Controllers
 {
@@ -12,13 +15,20 @@ namespace TareasMVC.Controllers
     {
         private readonly UserManager<IdentityUser> userManager;
         private readonly SignInManager<IdentityUser> signInManager;
+        private readonly ApplicationDbContext context;
 
         public UsuariosController(
             UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager
+            SignInManager<IdentityUser> signInManager,
+            ApplicationDbContext context
+
+
             ) { // userManager utilziamos para trabajar con nuestros usuarios 
+            //aplicationdbcontext es la pirza central de entityframeworkcore y que para hacer queries a las tablas tenemos que usar una instancia de esta
+            //recordar que el aplicationdbcontext lo configuramos comos ervicio e la clase program
             this.userManager = userManager;
             this.signInManager = signInManager;
+            this.context = context;
             //identityuser es la entidad configurada en al clase program que representa a un usuario
         }
         [AllowAnonymous] // nos permite indicar que cualquier usuario este identificado o no puede invocar esta accion 
@@ -169,6 +179,52 @@ namespace TareasMVC.Controllers
             mensaje = "Ha ocurrido un error al agreegar el login";
             return RedirectToAction("login", routeValues: new { mensaje });
 
+
+        }
+
+        [HttpGet]
+        [Authorize(Roles = Constantes.RolAdmin)] //para evitar el ingreso mediante el link a un recurso no autorizado
+        public async Task<IActionResult> Listado(string mensaje = null)
+        {
+            var usuarios = await context.Users.Select(u => new UsuarioViewModel
+            {
+                Email = u.Email,
+            }).ToListAsync();
+            //EN ESTE CASO QUEREMOS TRAER SOLO LA CO,UMNA DEL EMAIL POR ESO MEDIANTE EL SELECT SELECIONAMOS CUAL Y NO TRA
+            //EMOS TODAS LA COLUMNAS POR DEFECTO
+            var modelo = new UsuariosListadoViewModel();
+            modelo.Usuarios = usuarios;
+            modelo.Mensaje = mensaje;
+            return View(modelo);    
+        }
+
+        [HttpPost]
+        [Authorize(Roles = Constantes.RolAdmin)]
+        public async Task<IActionResult> HacerAdmin(string email)
+        {
+            var usuario = await context.Users.Where( u => u.Email == email).FirstOrDefaultAsync();
+            //firstordefault significa el primer valor ol el valor por defecto de usuario que es null
+            if(usuario is null)
+            {
+                return NotFound();
+            }
+            await userManager.AddToRoleAsync(usuario, Constantes.RolAdmin);
+            return RedirectToAction("Listado",routeValues:new {mensaje = "Rol asignado correctamente a" + email});
+
+        }
+
+        [HttpPost]
+        [Authorize(Roles = Constantes.RolAdmin)]
+        public async Task<IActionResult> RemoverAdmin(string email)
+        {
+            var usuario = await context.Users.Where(u => u.Email == email).FirstOrDefaultAsync();
+            //firstordefault significa el primer valor ol el valor por defecto de usuario que es null
+            if (usuario is null)
+            {
+                return NotFound();
+            }
+            await userManager.RemoveFromRoleAsync(usuario, Constantes.RolAdmin);
+            return RedirectToAction("Listado", routeValues: new { mensaje = "Rol removido correctamente a" + email });
 
         }
     }
